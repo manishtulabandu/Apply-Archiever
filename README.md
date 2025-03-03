@@ -1,6 +1,5 @@
 # **Apply Archive - Job Application Tracker** 🎯
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/xxxxxx/deploy-status)](https://grand-mousse-e7c7c9.netlify.app)  
 A **free & open-source job application tracker** to organize your job search efficiently!  
 Track applications, store resumes, search/filter jobs, and **never lose track of your applications again!**  
 
