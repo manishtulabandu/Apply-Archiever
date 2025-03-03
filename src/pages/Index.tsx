@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, SlidersHorizontal } from "lucide-react";
@@ -8,27 +7,42 @@ import { JobApplication } from "@/types";
 import ApplicationCard from "@/components/application-card";
 import ApplicationForm from "@/components/application-form";
 import EmptyState from "@/components/empty-state";
-import { 
-  saveApplications, 
-  getApplications, 
-  addApplication, 
-  updateApplication, 
-  deleteApplication 
+import {
+  saveApplications,
+  getApplications,
+  addApplication,
+  updateApplication,
+  deleteApplication,
 } from "@/lib/storage";
 import { mongoClient } from "@/lib/mongodb-client";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Check if MongoDB is enabled
 const useMongoDB = mongoClient.isEnabled();
 
 const Index = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
-  const [filteredApplications, setFilteredApplications] = useState<JobApplication[]>([]);
+  const [filteredApplications, setFilteredApplications] = useState<
+    JobApplication[]
+  >([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [formOpen, setFormOpen] = useState(false);
-  const [editingApplication, setEditingApplication] = useState<JobApplication | undefined>(undefined);
+  const [editingApplication, setEditingApplication] = useState<
+    JobApplication | undefined
+  >(undefined);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [applicationToDelete, setApplicationToDelete] = useState<string | null>(null);
+  const [applicationToDelete, setApplicationToDelete] = useState<string | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -45,7 +59,7 @@ const Index = () => {
         setIsLoading(false);
       }
     };
-    
+
     loadApplications();
   }, []);
 
@@ -58,7 +72,8 @@ const Index = () => {
         (app) =>
           app.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           app.jobLink.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (app.notes && app.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+          (app.notes &&
+            app.notes.toLowerCase().includes(searchQuery.toLowerCase()))
       );
       setFilteredApplications(filtered);
     }
@@ -66,7 +81,7 @@ const Index = () => {
 
   const handleSaveApplication = async (application: JobApplication) => {
     const isEditing = applications.some((app) => app.id === application.id);
-    
+
     try {
       if (isEditing) {
         if (useMongoDB) {
@@ -76,18 +91,18 @@ const Index = () => {
             throw new Error("Failed to update application");
           }
         }
-        
+
         // Update in local state
         const updatedApplications = applications.map((app) =>
           app.id === application.id ? application : app
         );
         setApplications(updatedApplications);
-        
+
         // If not using MongoDB, save to localStorage
         if (!useMongoDB) {
           await saveApplications(updatedApplications);
         }
-        
+
         sonnerToast.success("Application updated successfully");
       } else {
         if (useMongoDB) {
@@ -104,14 +119,14 @@ const Index = () => {
           setApplications(updatedApplications);
           await saveApplications(updatedApplications);
         }
-        
+
         sonnerToast.success("Application added successfully");
       }
     } catch (error) {
       console.error("Error saving application:", error);
       sonnerToast.error("Failed to save application");
     }
-    
+
     setFormOpen(false);
     setEditingApplication(undefined);
   };
@@ -136,24 +151,24 @@ const Index = () => {
             throw new Error("Failed to delete application from database");
           }
         }
-        
+
         // Remove from local state
         const updatedApplications = applications.filter(
           (app) => app.id !== applicationToDelete
         );
         setApplications(updatedApplications);
-        
+
         // If not using MongoDB, save to localStorage
         if (!useMongoDB) {
           await saveApplications(updatedApplications);
         }
-        
+
         sonnerToast.success("Application deleted successfully");
       } catch (error) {
         console.error("Error deleting application:", error);
         sonnerToast.error("Failed to delete application");
       }
-      
+
       setDeleteDialogOpen(false);
       setApplicationToDelete(null);
     }
@@ -168,10 +183,11 @@ const Index = () => {
     <div className="min-h-screen max-w-6xl mx-auto px-4 py-8 animate-fade-in">
       <Toaster />
       <header className="mb-8 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight mb-2">Apply Archive</h1>
+        <h1 className="text-3xl font-semibold tracking-tight mb-2">
+          Apply Archive
+        </h1>
         <p className="text-muted-foreground max-w-md mx-auto">
           Track your job applications in one place
-          {useMongoDB && <span className="ml-1 text-sm text-green-500">(MongoDB Mode)</span>}
         </p>
       </header>
 
@@ -185,13 +201,13 @@ const Index = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         <Button onClick={handleAddNewClick} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add New Application
         </Button>
       </div>
-      
+
       {isLoading ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Loading applications...</p>
@@ -199,7 +215,9 @@ const Index = () => {
       ) : filteredApplications.length === 0 ? (
         searchQuery ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No applications found for "{searchQuery}"</p>
+            <p className="text-muted-foreground">
+              No applications found for "{searchQuery}"
+            </p>
             <Button variant="link" onClick={() => setSearchQuery("")}>
               Clear Search
             </Button>
@@ -226,19 +244,22 @@ const Index = () => {
         onSave={handleSaveApplication}
         initialData={editingApplication}
       />
-      
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the 
+              This action cannot be undone. This will permanently delete the
               application from your database.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
