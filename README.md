@@ -19,17 +19,17 @@ Track applications, store resumes, search/filter jobs, and **never lose track of
 
 ---
 
-## **📦 Storage Modes**
-This application works in two modes:
-1. **LocalStorage Mode** (Frontend-only, no setup required)
-2. **MongoDB Mode** (Persistent storage, requires backend setup)
-
----
-
-## **📸 Screenshots**
+## **📺 Screenshots**
 | Dashboard View | Add Application | Search & Filter |
 |---------------|----------------|----------------|
 | ![Dashboard](./assets/dashboard.png) | ![Add Job](./assets/add-job.png) | ![Search](./assets/search-filter.png) |
+
+---
+
+## **💠 Storage Modes**
+This application works in two modes:
+1. **LocalStorage Mode** (Frontend-only, no setup required)
+2. **MongoDB Mode** (Persistent storage, requires backend setup)
 
 ---
 
@@ -44,32 +44,60 @@ Ensure you have the following installed:
 ```sh
 git clone https://github.com/manishtulabandu/apply-archive.git
 cd apply-archive
-3️⃣ Configure Environment Variables
-Create a .env file in the root directory and copy the content from .env.example:
+```
 
+### **3️⃣ Configure Environment Variables**
+Create a `.env` file in the root directory and copy the content from `.env.example`:
+```sh
 MONGODB_URI=mongodb://localhost:27017/applyarchive
 VITE_MONGODB_URI=true
 VITE_API_URL=http://localhost:5001/api
 PORT=5001
-🎯 Running the Application
+```
 
-🔥 Quick Start (Both Frontend & Backend)
-Run everything with one command:
+---
 
+## **🎯 Running the Application**
+### **🔥 Quick Start (Both Frontend & Backend)**
+Run everything with **one command**:
+```sh
 node start-app.js
-✅ Backend: http://localhost:5001
-✅ Frontend: http://localhost:8080
+```
+💪 **Backend**: http://localhost:5001  
+💪 **Frontend**: http://localhost:8080  
 
-🛠 API Endpoints (MongoDB Mode)
+### **📌 LocalStorage Mode (Frontend Only)**
+If you don’t want to set up a database, run:
+```sh
+npm run dev
+```
+💪 **Available at**: http://localhost:8080  
 
-Method	Endpoint	Description
-GET	/api/applications	Get all job applications
-POST	/api/applications	Create a new application
-PUT	/api/applications/:id	Update an application
-DELETE	/api/applications/:id	Delete an application
-GET	/api/health	Check API and MongoDB connection
-📂 Project Structure
+### **📁 MongoDB Mode (Persistent Storage)**
+Start the backend:
+```sh
+node server.js
+```
+Then, start the frontend:
+```sh
+npm run dev
+```
 
+---
+
+## **🛠 API Endpoints (MongoDB Mode)**
+| Method | Endpoint | Description |
+|--------|---------|-------------|
+| **GET** | `/api/applications` | Get all job applications |
+| **POST** | `/api/applications` | Create a new application |
+| **PUT** | `/api/applications/:id` | Update an application |
+| **DELETE** | `/api/applications/:id` | Delete an application |
+| **GET** | `/api/health` | Check API and MongoDB connection |
+
+---
+
+## **💽 Project Structure**
+```
 apply-archive/
 ├── .env                  # Environment variables
 ├── package.json          # Project dependencies
@@ -83,26 +111,39 @@ apply-archive/
 │   ├── types/            # TypeScript types
 │   └── vite.config.ts    # Vite config
 └── README.md             # This file!
-🌍 Contributing
+```
 
+---
+
+## **🌍 Contributing**
 Want to contribute? Follow these steps:
 
-Fork the repository 🍴
-Clone your fork:
-git clone https://github.com/yourusername/apply-archive.git
-Create a new branch:
-git checkout -b feature/your-feature
-Commit changes:
-git add .
-git commit -m "Added a new feature"
-Push & create a Pull Request! 🚀
-📜 License
+1. **Fork the repository** 🍞
+2. Clone your fork:
+   ```sh
+   git clone https://github.com/yourusername/apply-archive.git
+   ```
+3. Create a new branch:
+   ```sh
+   git checkout -b feature/your-feature
+   ```
+4. Commit changes:
+   ```sh
+   git add .
+   git commit -m "Added a new feature"
+   ```
+5. Push & create a **Pull Request**! 🚀
 
-This project is licensed under the MIT License – free to use, modify, and share!
-Check the LICENSE file for details.
+---
 
-⭐ Support & Share
+## **📝 License**
+This project is licensed under the **MIT License** – free to use, modify, and share!  
+Check the [LICENSE](./LICENSE) file for details.
 
-If you like this project, give it a ⭐ on GitHub!
-Share with job seekers & friends to help them manage their applications!**
-Follow for updates! 🚀
+---
+
+## **⭐ Support & Share**
+- **If you like this project, give it a ⭐ on GitHub!**  
+- **Share with job seekers & friends** to help them manage their applications!**  
+- **Follow for updates! 🚀**  
+
