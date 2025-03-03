@@ -1,266 +1,108 @@
-# Apply Archive - Job Application Tracker
+# **Apply Archive - Job Application Tracker** 🎯
 
-Apply Archive is a comprehensive job application tracking tool designed to help job seekers organize their job search process. It allows you to store company information, application details, upload resumes and cover letters, and keep track of your progress.
+[![Netlify Status](https://api.netlify.com/api/v1/badges/xxxxxx/deploy-status)](https://grand-mousse-e7c7c9.netlify.app)  
+A **free & open-source job application tracker** to organize your job search efficiently! 📂✨  
+Track applications, store resumes, search/filter jobs, and **never lose track of your applications again!**  
 
-## Features
+🚀 **Live Demo**: [Apply Archive](https://grand-mousse-e7c7c9.netlify.app)  
+⭐ **Star the Repo**: [GitHub Repository](https://github.com/manishtulabandu/apply-archive)
 
-- **Comprehensive Job Tracking**: Store all details about your job applications in one place
-- **Resume & Cover Letter Management**: Upload and organize your documents
-- **Dual Storage Support**: Choose between MongoDB (persistent) or localStorage (temporary)
-- **Search & Filter**: Easily find applications by company name or details
-- **User-friendly Interface**: Clean UI built with React and Tailwind CSS
-- **Responsive Design**: Works on desktops, tablets, and mobile devices
+---
 
-## Storage Modes
+## **✨ Features**
+✔️ **Track Job Applications** – Store company names, job descriptions, dates, and statuses  
+✔️ **Resume & Cover Letter Management** – Upload and organize documents  
+✔️ **Search & Filter** – Quickly find applications by company name or role  
+✔️ **Dual Storage Support** – Use **LocalStorage (no backend)** or **MongoDB (persistent storage)**  
+✔️ **Intuitive UI** – Clean, minimal UI built with React & Tailwind CSS  
+✔️ **Fully Responsive** – Works on desktops, tablets, and mobile devices  
 
-The application is designed to work in two modes:
+---
 
-1. **LocalStorage Mode**: Uses browser's localStorage for data storage (no backend required)
-2. **MongoDB Mode**: Uses MongoDB for persistent storage (requires backend configuration)
+## **📦 Storage Modes**
+This application works in two modes:
+1. **LocalStorage Mode** (Frontend-only, no setup required)
+2. **MongoDB Mode** (Persistent storage, requires backend setup)
 
-## Dependencies
+---
 
-### Frontend
+## **📸 Screenshots**
+| Dashboard View | Add Application | Search & Filter |
+|---------------|----------------|----------------|
+| ![Dashboard](./assets/dashboard.png) | ![Add Job](./assets/add-job.png) | ![Search](./assets/search-filter.png) |
 
-- React 18
-- Vite
-- TypeScript
-- Tailwind CSS
-- TanStack React Query
-- React Router
-- Zod (form validation)
-- Shadcn/UI components
-- Lucide React (icons)
-- React Hook Form
-- Recharts (for visualizations)
+---
 
-### Backend
+## **🚀 Installation Guide**
+### **1️⃣ Prerequisites**
+Ensure you have the following installed:
+- **[Node.js](https://nodejs.org/)** (v14 or higher)
+- **npm** or **yarn**
+- **MongoDB** (optional, only for persistent storage)
 
-- Node.js
-- Express
-- MongoDB / MongoDB Atlas
-- CORS
-
-## Setup Instructions
-
-### Prerequisites
-
-- Node.js (v14 or higher)
-- npm or yarn
-- MongoDB (optional, only for persistent storage)
-
-### Installation
-
-1. **Clone the repository**
-
-```bash
-git clone https://github.com/yourusername/apply-archive.git
+### **2️⃣ Clone the Repository**
+```sh
+git clone https://github.com/manishtulabandu/apply-archive.git
 cd apply-archive
-```
+3️⃣ Configure Environment Variables
+Create a .env file in the root directory and copy the content from .env.example:
 
-2. **Install dependencies**
-
-```bash
-npm install
-```
-
-3. **Configuration**
-
-Create a `.env` file in the root directory using `.env.example` as a template:
-
-```bash
-# MongoDB connection string (required for database mode)
 MONGODB_URI=mongodb://localhost:27017/applyarchive
-
-# Frontend environment variables
 VITE_MONGODB_URI=true
 VITE_API_URL=http://localhost:5001/api
-
-# Server port
 PORT=5001
-```
+🎯 Running the Application
 
-## Running the Application
+🔥 Quick Start (Both Frontend & Backend)
+Run everything with one command:
 
-### Quick Start (Both Frontend and Backend) --- (EASY)
-
-Use the start script to run both servers simultaneously:
-
-```bash
 node start-app.js
-```
+✅ Backend: http://localhost:5001
+✅ Frontend: http://localhost:8080
 
-This will start:
+🛠 API Endpoints (MongoDB Mode)
 
-- Backend server at http://localhost:5001
-- Frontend development server at http://localhost:8080
+Method	Endpoint	Description
+GET	/api/applications	Get all job applications
+POST	/api/applications	Create a new application
+PUT	/api/applications/:id	Update an application
+DELETE	/api/applications/:id	Delete an application
+GET	/api/health	Check API and MongoDB connection
+📂 Project Structure
 
-### Manual Start (Separate Servers)
-
-#### LocalStorage Mode (Frontend Only)
-
-```bash
-npm run dev
-```
-
-The app will use localStorage for data storage and be available at http://localhost:8080.
-
-#### MongoDB Mode (Backend + Frontend)
-
-1. Start the backend server:
-
-```bash
-node server.js
-```
-
-2. In a separate terminal, start the frontend:
-
-```bash
-npm run dev
-```
-
-## MongoDB Setup Guide
-
-### Installing MongoDB (Community Edition)
-
-#### For Windows:
-
-1. Download the MongoDB installer from [MongoDB Download Center](https://www.mongodb.com/try/download/community)
-2. Run the installer and follow the installation wizard
-3. MongoDB will be installed as a service that runs automatically
-
-#### For macOS:
-
-Using Homebrew:
-
-```bash
-brew tap mongodb/brew
-brew install mongodb-community
-brew services start mongodb-community
-```
-
-#### For Linux (Ubuntu):
-
-```bash
-sudo apt update
-sudo apt install -y mongodb
-sudo systemctl start mongodb
-sudo systemctl enable mongodb
-```
-
-### Setting Up MongoDB Compass (GUI Tool) --- (EASY)
-
-1. Download MongoDB Compass from [MongoDB Download Center](https://www.mongodb.com/try/download/compass)
-2. Install and open Compass
-3. Connect to your MongoDB instance:
-   - For local development: `mongodb://localhost:27017`
-   - Click "Connect"
-4. You should see the `applyarchive` database created automatically when you first use the application
-
-## GitHub Repository
-
-### Creating Your Own Repository
-
-1. Create a new repository on GitHub (without initializing with README, .gitignore, or license)
-2. Initialize your local repository and push the code:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/yourusername/apply-archive.git
-git push -u origin main
-```
-
-### Contributing to This Project
-
-1. Fork the repository on GitHub
-2. Clone your fork:
-
-```bash
-git clone https://github.com/yourusername/apply-archive.git
-```
-
-3. Create a new branch:
-
-```bash
-git checkout -b feature/your-feature-name
-```
-
-4. Make your changes and commit:
-
-```bash
-git add .
-git commit -m "Add your feature"
-```
-
-5. Push to your fork:
-
-```bash
-git push origin feature/your-feature-name
-```
-
-6. Create a Pull Request from your fork on GitHub
-
-## File Structure
-
-```
 apply-archive/
-├── .env                  # Environment variables (create this manually)
-├── .env.example          # Example environment variables
-├── package.json          # Project dependencies and scripts
-├── server.js             # Express backend server for MongoDB mode
-├── start-app.js          # Script to run both frontend and backend
-├── src/                  # Frontend source code
-│   ├── App.tsx           # Main application component
+├── .env                  # Environment variables
+├── package.json          # Project dependencies
+├── server.js             # Express backend
+├── start-app.js          # Start script (Frontend + Backend)
+├── src/                  # Frontend source
+│   ├── App.tsx           # Main component
 │   ├── components/       # UI components
-│   │   ├── application-card.tsx      # Displays a job application
-│   │   ├── application-form.tsx      # Form to add/edit applications
-│   │   ├── empty-state.tsx           # Shown when no applications exist
-│   │   └── ui/                       # Shadcn UI components
-│   ├── lib/              # Utility functions and services
-│   │   ├── file-utils.ts             # File handling utilities
-│   │   ├── mongodb-client.ts         # MongoDB client interface
-│   │   ├── storage.ts                # Storage abstraction layer
-│   │   └── utils.ts                  # General utilities
-│   ├── pages/            # Application pages
-│   │   ├── Index.tsx                 # Main page with applications list
-│   │   └── NotFound.tsx              # 404 page
-│   └── types/            # TypeScript type definitions
-│       └── index.ts                  # Types for job applications
-└── vite.config.ts        # Vite configuration
-```
+│   ├── lib/              # Utilities
+│   ├── pages/            # App pages
+│   ├── types/            # TypeScript types
+│   └── vite.config.ts    # Vite config
+└── README.md             # This file!
+🌍 Contributing
 
-## API Reference
+Want to contribute? Follow these steps:
 
-When running in MongoDB mode, the following API endpoints are available:
+Fork the repository 🍴
+Clone your fork:
+git clone https://github.com/yourusername/apply-archive.git
+Create a new branch:
+git checkout -b feature/your-feature
+Commit changes:
+git add .
+git commit -m "Added a new feature"
+Push & create a Pull Request! 🚀
+📜 License
 
-- `GET /api/applications` - Get all job applications
-- `POST /api/applications` - Create a new job application
-- `PUT /api/applications/:id` - Update an existing job application
-- `DELETE /api/applications/:id` - Delete a job application
-- `GET /api/health` - Check the API and MongoDB connection status
+This project is licensed under the MIT License – free to use, modify, and share!
+Check the LICENSE file for details.
 
-## Troubleshooting
+⭐ Support & Share
 
-### MongoDB Connection Issues
-
-If you're having trouble connecting to MongoDB:
-
-1. Check that MongoDB is running (`mongod` process)
-2. Verify your connection string in `.env`
-3. Try connecting with MongoDB Compass to test the connection
-4. Check the API health endpoint: http://localhost:5001/api/health
-
-### CORS Errors
-
-If you see CORS errors in the console:
-
-1. Ensure both backend and frontend are running
-2. Verify that the `VITE_API_URL` in `.env` matches your backend URL
-3. Check that the API server is running on the expected port
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+If you like this project, give it a ⭐ on GitHub!
+Share with job seekers & friends to help them manage their applications!**
+Follow for updates! 🚀
