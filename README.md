@@ -82,7 +82,7 @@ PORT=5001
 
 ## Running the Application
 
-### Quick Start (Both Frontend and Backend)
+### Quick Start (Both Frontend and Backend) --- (EASY)
 
 Use the start script to run both servers simultaneously:
 
@@ -148,7 +148,7 @@ sudo systemctl start mongodb
 sudo systemctl enable mongodb
 ```
 
-### Setting Up MongoDB Compass (GUI Tool)
+### Setting Up MongoDB Compass (GUI Tool) --- (EASY)
 
 1. Download MongoDB Compass from [MongoDB Download Center](https://www.mongodb.com/try/download/compass)
 2. Install and open Compass
