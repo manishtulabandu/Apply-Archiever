@@ -1,274 +1,198 @@
-import express from "express";
-import cors from "cors";
-import { MongoClient, ObjectId } from "mongodb";
-import dotenv from "dotenv";
+
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
 dotenv.config();
+
+// Get current directory name (ESM equivalent of __dirname)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-// Improved CORS configuration with more permissive settings
-app.use(
-  cors({
-    origin: "*", // Allow all origins temporarily for testing
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-app.use(express.json());
-
-// MongoDB connection
-let db;
-let connectionError = null;
-
-async function connectToMongoDB() {
-  try {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) {
-      connectionError = "MONGODB_URI environment variable is not defined";
-      console.error(connectionError);
-      return false;
+// Set up multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
-
-    console.log("Attempting to connect to MongoDB...");
-    console.log(`Using connection string: ${uri}`);
-
-    const client = new MongoClient(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      connectTimeoutMS: 10000, // 10 seconds
-      socketTimeoutMS: 45000, // 45 seconds
-    });
-
-    // Connect with timeout
-    const connectPromise = client.connect();
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Connection timeout after 10 seconds")),
-        10000
-      )
-    );
-
-    await Promise.race([connectPromise, timeoutPromise]);
-    console.log("Connected to MongoDB successfully");
-
-    // Test the connection with a simple command
-    await client.db().admin().ping();
-    console.log("MongoDB ping successful");
-
-    db = client.db("applyarchive");
-
-    // Check if jobApplications collection exists, create it if it doesn't
-    const collections = await db
-      .listCollections({ name: "jobApplications" })
-      .toArray();
-    if (collections.length === 0) {
-      console.log("Creating jobApplications collection...");
-      await db.createCollection("jobApplications");
-      console.log("jobApplications collection created successfully");
-    } else {
-      console.log("jobApplications collection already exists");
-    }
-
-    // Add connection error handler
-    client.on("error", (err) => {
-      console.error("MongoDB connection error event:", err);
-      connectionError = "MongoDB connection error: " + err.message;
-    });
-
-    connectionError = null;
-    return true;
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    connectionError = error.message;
-
-    // Log more detailed error information
-    if (error.name === "MongoServerSelectionError") {
-      console.error("Could not connect to any MongoDB server");
-      console.error("Please check:");
-      console.error("1. Your connection string is correct");
-      console.error(
-        "2. IP address whitelist in MongoDB Atlas - add your current IP address"
-      );
-      console.error("3. Username and password are correct");
-      console.error("4. Network connectivity to MongoDB server");
-      console.error(
-        "5. MongoDB Atlas status: https://status.cloud.mongodb.com/"
-      );
-    } else if (error.message.includes("authentication failed")) {
-      console.error(
-        "MongoDB authentication failed - username or password is incorrect"
-      );
-    } else if (error.message.includes("timed out")) {
-      console.error(
-        "MongoDB connection timed out - check network connectivity and IP whitelist"
-      );
-    }
-
-    return false;
-  }
-}
-
-// Routes
-app.get("/api/applications", async (req, res) => {
-  try {
-    if (!db) {
-      return res
-        .status(500)
-        .json({ error: "Database not connected", details: connectionError });
-    }
-
-    const applications = await db
-      .collection("jobApplications")
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    res.json(applications);
-  } catch (error) {
-    console.error("Error fetching applications:", error);
-    res.status(500).json({ error: error.message });
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
   }
 });
 
-app.post("/api/applications", async (req, res) => {
-  try {
-    if (!db) {
-      return res
-        .status(500)
-        .json({ error: "Database not connected", details: connectionError });
-    }
+const upload = multer({ storage });
 
-    const application = {
-      ...req.body,
-      createdAt: new Date(req.body.createdAt),
-    };
-
-    const result = await db
-      .collection("jobApplications")
-      .insertOne(application);
-    res.status(201).json(application);
-  } catch (error) {
-    console.error("Error creating application:", error);
-    res.status(500).json({ error: error.message });
-  }
+// MongoDB Schema
+const jobSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  companyName: String,
+  position: String,
+  location: String,
+  jobDescription: String,
+  applicationDate: String,
+  status: { type: String, enum: ['saved', 'applied'], default: 'applied' },
+  notes: String,
+  salary: String,
+  url: String,
+  contactName: String,
+  contactEmail: String,
+  resumePath: String,
+  coverLetterPath: String,
+  lastUpdated: { type: String, required: true }
 });
 
-app.put("/api/applications/:id", async (req, res) => {
-  try {
-    if (!db) {
-      return res
-        .status(500)
-        .json({ error: "Database not connected", details: connectionError });
-    }
+const Job = mongoose.model('Job', jobSchema);
 
-    const { id } = req.params;
-    const application = {
-      ...req.body,
-      createdAt: new Date(req.body.createdAt),
-    };
-
-    delete application._id; // Remove _id if it exists
-
-    const result = await db
-      .collection("jobApplications")
-      .updateOne({ id }, { $set: application });
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ error: "Application not found" });
-    }
-
-    res.json({ message: "Application updated successfully" });
-  } catch (error) {
-    console.error("Error updating application:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete("/api/applications/:id", async (req, res) => {
-  try {
-    if (!db) {
-      return res
-        .status(500)
-        .json({ error: "Database not connected", details: connectionError });
-    }
-
-    const { id } = req.params;
-    const result = await db.collection("jobApplications").deleteOne({ id });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ error: "Application not found" });
-    }
-
-    res.json({ message: "Application deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting application:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Add a health check endpoint with detailed diagnostics
-app.get("/api/health", (req, res) => {
-  const mongoStatus = db
-    ? "Connected"
-    : `Disconnected: ${connectionError || "Unknown error"}`;
-
-  // Include MONGODB_URI in diagnostics (but hide credentials)
-  const uri = process.env.MONGODB_URI || "Not set";
-
-  res.json({
-    status: "UP",
-    mongodb: db ? "Connected" : "Disconnected",
-    mongodbDetails: mongoStatus,
-    env: {
-      PORT: process.env.PORT || "5000 (default)",
-      MONGODB_URI: uri ? "Set" : "Not set",
-      NODE_ENV: process.env.NODE_ENV || "Not set",
-    },
-    timestamp: new Date().toISOString(),
+// Connect to MongoDB with error handling
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB successfully'))
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    console.log('Continuing with local storage only');
   });
+
+// File upload endpoint
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    const filePath = `/api/files/${req.file.filename}`;
+    res.json({ filePath });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ error: 'File upload failed' });
+  }
 });
 
-// Only start the server if this file is run directly (not imported)
-if (import.meta.url === `file://${process.argv[1]}`) {
-  // Start server
-  async function startServer() {
-    // Check if MongoDB URI is provided
-    if (!process.env.MONGODB_URI) {
-      console.log("MONGODB_URI not found in environment variables.");
-      console.log("Backend server not started - app will use localStorage.");
-      return; // Don't start the server
+// Serve uploaded files
+app.get('/api/files/:filename', (req, res) => {
+  const filePath = path.join(__dirname, 'uploads', req.params.filename);
+  res.sendFile(filePath);
+});
+
+// Get all applications
+app.get('/api/applications', async (req, res) => {
+  try {
+    const jobs = await Job.find();
+    res.json(jobs);
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+
+// Get application by ID
+app.get('/api/applications/:id', async (req, res) => {
+  try {
+    const job = await Job.findOne({ id: req.params.id });
+    if (!job) {
+      return res.status(404).json({ error: 'Application not found' });
     }
+    res.json(job);
+  } catch (error) {
+    console.error('Error fetching application:', error);
+    res.status(500).json({ error: 'Failed to fetch application' });
+  }
+});
 
-    const connected = await connectToMongoDB();
+// Create application
+app.post('/api/applications', async (req, res) => {
+  try {
+    const newJob = new Job(req.body);
+    await newJob.save();
+    res.status(201).json(newJob);
+  } catch (error) {
+    console.error('Error creating application:', error);
+    res.status(500).json({ error: 'Failed to create application' });
+  }
+});
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`API available at http://localhost:${PORT}/api/applications`);
-      console.log(`Health check at http://localhost:${PORT}/api/health`);
-      console.log(
-        `MongoDB connection status: ${connected ? "Connected" : "Disconnected"}`
-      );
+// Update application
+app.put('/api/applications/:id', async (req, res) => {
+  try {
+    const updatedJob = await Job.findOneAndUpdate(
+      { id: req.params.id },
+      req.body,
+      { new: true }
+    );
+    
+    if (!updatedJob) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    
+    res.json(updatedJob);
+  } catch (error) {
+    console.error('Error updating application:', error);
+    res.status(500).json({ error: 'Failed to update application' });
+  }
+});
 
-      if (!connected) {
-        console.log(
-          "WARNING: Running in disconnected mode. Data will not persist to MongoDB."
-        );
-        console.log(
-          "Check your MONGODB_URI in the .env file to enable MongoDB mode."
-        );
-        console.log("Try accessing the health endpoint for more information.");
-        if (connectionError) {
-          console.log(`Connection error: ${connectionError}`);
-        }
-      }
+// Delete application
+app.delete('/api/applications/:id', async (req, res) => {
+  try {
+    const result = await Job.findOneAndDelete({ id: req.params.id });
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    
+    res.json({ message: 'Application deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting application:', error);
+    res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
+
+// Health check endpoint with improved error handling
+app.get('/api/health', (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      res.json({ status: 'ok', message: 'API server is running and connected to MongoDB' });
+    } else {
+      res.status(200).json({ 
+        status: 'limited', 
+        message: 'API server is running but not connected to MongoDB. Using local storage mode.' 
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'API server error', 
+      error: error.message 
     });
   }
+});
 
-  startServer();
-}
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`API URL: http://localhost:${PORT}/api`);
+  console.log('Health check: http://localhost:' + PORT + '/api/health');
+});
 
-// Export for importing in other files
-export default app;
+// Add proper error handling for unhandled rejections
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled Promise Rejection:', error);
+  // Don't crash the server, just log the error
+});

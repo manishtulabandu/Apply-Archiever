@@ -1,219 +1,356 @@
 
-import { JobApplication } from "@/types";
-import { mongoClient } from "./mongodb-client";
-import { toast } from "@/components/ui/use-toast";
+import { Job, MongoDBConfig, Filter } from "@/types/types";
 
-const STORAGE_KEY = 'job-applications';
+// Function to generate a unique ID
+const generateId = (): string => {
+  return Math.random().toString(36).substring(2, 15);
+};
 
-// Check if MongoDB is enabled
-const useMongoDB = mongoClient.isEnabled();
+// Functions for filter management
+export const getFilter = (): Filter => {
+  const filterString = localStorage.getItem('filter');
+  return filterString ? JSON.parse(filterString) : {
+    search: '',
+    status: 'all',
+    sortBy: 'date',
+    sortOrder: 'desc'
+  };
+};
 
-// Log which storage mode is being used to help with debugging
-console.log(`Storage mode: ${useMongoDB ? 'MongoDB (if server available)' : 'LocalStorage'}`);
+export const saveFilter = (filter: Filter): void => {
+  localStorage.setItem('filter', JSON.stringify(filter));
+};
 
-export async function saveApplications(applications: JobApplication[]): Promise<void> {
-  // With MongoDB enabled, this function is only used with localStorage
-  if (!useMongoDB) {
-    try {
-      const serializedData = applications.map(app => ({
-        ...app,
-        resumeFile: null, // We can't serialize File objects
-        coverLetterFile: null,
-        createdAt: app.createdAt.toISOString()
-      }));
-      
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(serializedData));
-    } catch (error) {
-      console.error("Error saving applications to localStorage:", error);
-      toast({
-        title: "Error Saving Data",
-        description: "Could not save applications to local storage.",
-        variant: "destructive"
-      });
-    }
+export const applyFilters = (jobs: Job[], filter: Filter): Job[] => {
+  let filteredJobs = [...jobs];
+  
+  // Apply search filter
+  if (filter.search) {
+    const searchTerm = filter.search.toLowerCase();
+    filteredJobs = filteredJobs.filter(job => 
+      (job.companyName?.toLowerCase().includes(searchTerm) || 
+       job.position?.toLowerCase().includes(searchTerm) ||
+       job.location?.toLowerCase().includes(searchTerm))
+    );
   }
   
-  return Promise.resolve();
-}
-
-export async function getApplications(): Promise<JobApplication[]> {
-  if (useMongoDB) {
-    // Check MongoDB connection first
-    const isConnected = await mongoClient.checkConnection();
-    if (!isConnected) {
-      console.warn("MongoDB is not connected. Falling back to localStorage");
-      return getApplicationsFromLocalStorage();
+  // Apply status filter
+  if (filter.status !== 'all') {
+    filteredJobs = filteredJobs.filter(job => job.status === filter.status);
+  }
+  
+  // Apply sorting
+  filteredJobs.sort((a, b) => {
+    if (filter.sortBy === 'date') {
+      const dateA = a.applicationDate || a.lastUpdated;
+      const dateB = b.applicationDate || b.lastUpdated;
+      return filter.sortOrder === 'asc' 
+        ? new Date(dateA).getTime() - new Date(dateB).getTime()
+        : new Date(dateB).getTime() - new Date(dateA).getTime();
     }
     
-    try {
-      const applications = await mongoClient.getAllApplications();
-      if (applications && applications.length > 0) {
-        // Also save to localStorage as a backup
-        saveLocalBackup(applications);
-        return applications;
+    if (filter.sortBy === 'company') {
+      const companyA = a.companyName || '';
+      const companyB = b.companyName || '';
+      return filter.sortOrder === 'asc'
+        ? companyA.localeCompare(companyB)
+        : companyB.localeCompare(companyA);
+    }
+    
+    if (filter.sortBy === 'status') {
+      return filter.sortOrder === 'asc'
+        ? a.status.localeCompare(b.status)
+        : b.status.localeCompare(a.status);
+    }
+    
+    return 0;
+  });
+  
+  return filteredJobs;
+};
+
+// Function to get MongoDB configuration from environment variables
+export const getMongoDBConfig = (): MongoDBConfig => {
+  const enabled = import.meta.env.VITE_MONGODB_URI === 'true';
+  const apiUrl = import.meta.env.VITE_API_URL;
+  
+  return {
+    enabled: enabled,
+    apiUrl: apiUrl,
+  };
+};
+
+// Function to get jobs from local storage
+const getJobsFromLocalStorage = (): Job[] => {
+  const jobsString = localStorage.getItem('jobs');
+  return jobsString ? JSON.parse(jobsString) : [];
+};
+
+// Function to get a job from local storage by ID
+const getJobFromLocalStorage = (id: string): Job | null => {
+  const jobs = getJobsFromLocalStorage();
+  const job = jobs.find((job) => job.id === id);
+  return job || null;
+};
+
+// Function to add a job to local storage
+const addJobToLocalStorage = (job: Job): void => {
+  const jobs = getJobsFromLocalStorage();
+  jobs.push(job);
+  localStorage.setItem('jobs', JSON.stringify(jobs));
+};
+
+// Function to update a job in local storage
+const updateJobInLocalStorage = (id: string, job: Job): void => {
+  const jobs = getJobsFromLocalStorage();
+  const updatedJobs = jobs.map((j) => (j.id === id ? job : j));
+  localStorage.setItem('jobs', JSON.stringify(updatedJobs));
+};
+
+// Function to delete a job from local storage
+const deleteJobFromLocalStorage = (id: string): void => {
+  const jobs = getJobsFromLocalStorage();
+  const updatedJobs = jobs.filter((job) => job.id !== id);
+  localStorage.setItem('jobs', JSON.stringify(updatedJobs));
+};
+
+// Add function to update MongoDB status for fallback handling
+export const setMongoDBStatus = (status: boolean): void => {
+  localStorage.setItem('mongodb_connected', status ? 'true' : 'false');
+};
+
+// Files storage utility
+export const storeFile = async (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      if (e.target && typeof e.target.result === 'string') {
+        resolve(e.target.result);
       } else {
-        // If no data in MongoDB, check if we have local data
-        const localData = getApplicationsFromLocalStorage();
-        if (localData && localData.length > 0) {
-          console.log("No MongoDB data found, using localStorage data");
-          return localData;
+        resolve('');
+      }
+    };
+    
+    reader.readAsDataURL(file);
+  });
+};
+
+// Get job by ID (combining local and MongoDB)
+export const getJobById = async (id: string): Promise<Job | null> => {
+  return getJob(id);
+};
+
+// Update getJobs to better handle MongoDB connection issues
+export const getJobs = async (): Promise<Job[]> => {
+  const mongoConfig = getMongoDBConfig();
+  
+  if (mongoConfig.enabled) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`${mongoConfig.apiUrl}/applications`, {
+        signal: controller.signal
+      }).catch(error => {
+        if (error.name === 'AbortError') {
+          throw new Error('Connection timeout');
         }
-        return [];
+        throw error;
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const jobs = await response.json();
+        return jobs;
+      } else {
+        throw new Error(`Server error: ${response.status}`);
       }
     } catch (error) {
-      console.error("Error fetching from MongoDB:", error);
-      return getApplicationsFromLocalStorage();
+      console.error('Error getting jobs from MongoDB:', error);
+      // Fallback to localStorage
+      setMongoDBStatus(false);
+      return getJobsFromLocalStorage();
     }
   } else {
-    return getApplicationsFromLocalStorage();
+    return getJobsFromLocalStorage();
   }
-}
+};
 
-// Helper function to save MongoDB data to localStorage as backup
-function saveLocalBackup(applications: JobApplication[]): void {
-  try {
-    const serializedData = applications.map(app => ({
-      ...app,
-      resumeFile: null,
-      coverLetterFile: null,
-      createdAt: app.createdAt instanceof Date ? app.createdAt.toISOString() : app.createdAt
-    }));
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializedData));
-  } catch (error) {
-    console.error("Error creating local backup:", error);
-  }
-}
-
-function getApplicationsFromLocalStorage(): JobApplication[] {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (!data) return [];
+// Update getJob to better handle MongoDB connection issues
+export const getJob = async (id: string): Promise<Job | null> => {
+  const mongoConfig = getMongoDBConfig();
   
-  try {
-    const parsed = JSON.parse(data);
-    return parsed.map((item: any) => ({
-      ...item,
-      createdAt: new Date(item.createdAt)
-    }));
-  } catch (error) {
-    console.error("Error parsing job applications from localStorage:", error);
-    toast({
-      title: "Error Loading Data",
-      description: "Could not load applications from local storage.",
-      variant: "destructive"
-    });
-    return [];
-  }
-}
-
-export async function addApplication(application: JobApplication): Promise<JobApplication | null> {
-  if (useMongoDB) {
-    // Check MongoDB connection first
-    const isConnected = await mongoClient.checkConnection();
-    if (!isConnected) {
-      console.warn("MongoDB is not connected. Falling back to localStorage");
-      // In case of MongoDB error, we still want to return the application
-      // so the UI can update, but we'll save it to localStorage instead
-      const applications = getApplicationsFromLocalStorage();
-      applications.push(application);
-      await saveApplications(applications);
-      toast({
-        title: "Saved Locally",
-        description: "Application saved to local storage due to database connection issues.",
+  if (mongoConfig.enabled) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`${mongoConfig.apiUrl}/applications/${id}`, {
+        signal: controller.signal
+      }).catch(error => {
+        if (error.name === 'AbortError') {
+          throw new Error('Connection timeout');
+        }
+        throw error;
       });
-      return application;
-    }
-    
-    const result = await mongoClient.createApplication(application);
-    if (result) {
-      // Also save to localStorage as backup
-      const applications = getApplicationsFromLocalStorage();
-      applications.push(result);
-      saveLocalBackup(applications);
-    }
-    return result;
-  } 
-  
-  // LocalStorage mode
-  const applications = getApplicationsFromLocalStorage();
-  applications.push(application);
-  await saveApplications(applications);
-  return Promise.resolve(application);
-}
-
-export async function updateApplication(application: JobApplication): Promise<JobApplication | null> {
-  if (useMongoDB) {
-    // Check MongoDB connection first
-    const isConnected = await mongoClient.checkConnection();
-    if (!isConnected) {
-      console.warn("MongoDB is not connected. Falling back to localStorage");
-      // Update in localStorage instead
-      const applications = getApplicationsFromLocalStorage();
-      const index = applications.findIndex(app => app.id === application.id);
-      if (index !== -1) {
-        applications[index] = application;
-        await saveApplications(applications);
-        toast({
-          title: "Updated Locally",
-          description: "Application updated in local storage due to database connection issues.",
-        });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const job = await response.json();
+        return job;
+      } else if (response.status === 404) {
+        return null;
+      } else {
+        throw new Error(`Server error: ${response.status}`);
       }
-      return application;
+    } catch (error) {
+      console.error('Error getting job from MongoDB:', error);
+      // Fallback to localStorage
+      setMongoDBStatus(false);
+      return getJobFromLocalStorage(id);
     }
-    
-    const success = await mongoClient.updateApplication(application);
-    if (success) {
-      // Also update in localStorage
-      const applications = getApplicationsFromLocalStorage();
-      const index = applications.findIndex(app => app.id === application.id);
-      if (index !== -1) {
-        applications[index] = application;
-        saveLocalBackup(applications);
-      }
-    }
-    return success ? application : null;
+  } else {
+    return getJobFromLocalStorage(id);
   }
-  
-  // LocalStorage mode
-  const applications = getApplicationsFromLocalStorage();
-  const index = applications.findIndex(app => app.id === application.id);
-  if (index !== -1) {
-    applications[index] = application;
-    await saveApplications(applications);
-  }
-  return Promise.resolve(application);
-}
+};
 
-export async function deleteApplication(id: string): Promise<boolean> {
-  if (useMongoDB) {
-    // Check MongoDB connection first
-    const isConnected = await mongoClient.checkConnection();
-    if (!isConnected) {
-      console.warn("MongoDB is not connected. Falling back to localStorage");
-      // Delete from localStorage instead
-      const applications = getApplicationsFromLocalStorage();
-      const filtered = applications.filter(app => app.id !== id);
-      await saveApplications(filtered);
-      toast({
-        title: "Deleted Locally",
-        description: "Application deleted from local storage due to database connection issues.",
+// Update addJob to better handle MongoDB connection issues and add ID/lastUpdated
+export const addJob = async (jobData: Omit<Job, "id" | "lastUpdated">): Promise<void> => {
+  // Create a complete job with id and lastUpdated fields
+  const job: Job = {
+    ...jobData,
+    id: generateId(),
+    lastUpdated: new Date().toISOString()
+  };
+
+  const mongoConfig = getMongoDBConfig();
+  
+  if (mongoConfig.enabled) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`${mongoConfig.apiUrl}/applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(job),
+        signal: controller.signal
+      }).catch(error => {
+        if (error.name === 'AbortError') {
+          throw new Error('Connection timeout');
+        }
+        throw error;
       });
-      return true;
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error adding job to MongoDB:', error);
+      // Fallback to localStorage
+      setMongoDBStatus(false);
+      addJobToLocalStorage(job);
     }
-    
-    const success = await mongoClient.deleteApplication(id);
-    if (success) {
-      // Also delete from localStorage
-      const applications = getApplicationsFromLocalStorage();
-      const filtered = applications.filter(app => app.id !== id);
-      saveLocalBackup(filtered);
-    }
-    return success;
+  } else {
+    addJobToLocalStorage(job);
   }
+};
+
+// Update updateJob to better handle MongoDB connection issues
+export const updateJob = async (job: Job): Promise<void> => {
+  const mongoConfig = getMongoDBConfig();
   
-  // LocalStorage mode
-  const applications = getApplicationsFromLocalStorage();
-  const filtered = applications.filter(app => app.id !== id);
-  await saveApplications(filtered);
-  return Promise.resolve(true);
-}
+  // Update the lastUpdated timestamp
+  const updatedJob = {
+    ...job,
+    lastUpdated: new Date().toISOString()
+  };
+  
+  if (mongoConfig.enabled) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`${mongoConfig.apiUrl}/applications/${job.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedJob),
+        signal: controller.signal
+      }).catch(error => {
+        if (error.name === 'AbortError') {
+          throw new Error('Connection timeout');
+        }
+        throw error;
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error updating job in MongoDB:', error);
+      // Fallback to localStorage
+      setMongoDBStatus(false);
+      updateJobInLocalStorage(job.id, updatedJob);
+    }
+  } else {
+    updateJobInLocalStorage(job.id, updatedJob);
+  }
+};
+
+// Update deleteJob to better handle MongoDB connection issues
+export const deleteJob = async (id: string): Promise<void> => {
+  const mongoConfig = getMongoDBConfig();
+  
+  if (mongoConfig.enabled) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`${mongoConfig.apiUrl}/applications/${id}`, {
+        method: 'DELETE',
+        signal: controller.signal
+      }).catch(error => {
+        if (error.name === 'AbortError') {
+          throw new Error('Connection timeout');
+        }
+        throw error;
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error deleting job from MongoDB:', error);
+      // Fallback to localStorage
+      setMongoDBStatus(false);
+      deleteJobFromLocalStorage(id);
+    }
+  } else {
+    deleteJobFromLocalStorage(id);
+  }
+};
+
+// Function to generate a new job with a unique ID and lastUpdated timestamp
+export const generateNewJob = (): Job => {
+  const newId = generateId();
+  const now = new Date().toISOString();
+  
+  return {
+    id: newId,
+    status: 'applied',
+    lastUpdated: now,
+  };
+};

@@ -1,10 +1,11 @@
+
 # **Apply Archive - Job Application Tracker** 🎯
 
 A **free & open-source job application tracker** to organize your job search efficiently!  
 Track applications, store resumes, search/filter jobs, and **never lose track of your applications again!**  
 
-🚀 **Live Demo**: [Apply Archive](https://grand-mousse-e7c7c9.netlify.app)  
-⭐ **Star the Repo**: [GitHub Repository](https://github.com/manishtulabandu/apply-archive)
+🚀 **Live Demo**: [Apply Archive](https://apply-archive-demo.netlify.app)  
+⭐ **Star the Repo**: [GitHub Repository](https://github.com/yourusername/apply-archive)
 
 ---
 
@@ -15,6 +16,7 @@ Track applications, store resumes, search/filter jobs, and **never lose track of
 ✔️ **Dual Storage Support** – Use **LocalStorage (no backend)** or **MongoDB (persistent storage)**  
 ✔️ **Intuitive UI** – Clean, minimal UI built with React & Tailwind CSS  
 ✔️ **Fully Responsive** – Works on desktops, tablets, and mobile devices  
+✔️ **Robust Error Handling** – Graceful fallbacks and informative user feedback  
 
 ---
 
@@ -30,6 +32,8 @@ This application works in two modes:
 1. **LocalStorage Mode** (Frontend-only, no setup required)
 2. **MongoDB Mode** (Persistent storage, requires backend setup)
 
+The app automatically detects the availability of MongoDB and falls back to LocalStorage if the database connection fails.
+
 ---
 
 ## **🚀 Installation Guide**
@@ -41,16 +45,29 @@ Ensure you have the following installed:
 
 ### **2️⃣ Clone the Repository**
 ```sh
-git clone https://github.com/manishtulabandu/apply-archive.git
+git clone https://github.com/yourusername/apply-archive.git
 cd apply-archive
 ```
 
 ### **3️⃣ Configure Environment Variables**
 Create a `.env` file in the root directory and copy the content from `.env.example`:
 ```sh
+# MongoDB Connection String 
+# For local MongoDB:
 MONGODB_URI=mongodb://localhost:27017/applyarchive
+
+# For MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://yourusername:yourpassword@cluster.mongodb.net/applyarchive?retryWrites=true&w=majority
+
+# Frontend environment variables
+# Set to "true" to enable MongoDB integration in the frontend
+# Set to any other value or remove to use localStorage only
 VITE_MONGODB_URI=true
+
+# The URL of your API server - must match the server's port (default is 5001)
 VITE_API_URL=http://localhost:5001/api
+
+# Server port
 PORT=5001
 ```
 
@@ -66,7 +83,7 @@ node start-app.js
 💪 **Frontend**: http://localhost:8080  
 
 ### **📌 LocalStorage Mode (Frontend Only)**
-If you don’t want to set up a database, run:
+If you don't want to set up a database, run:
 ```sh
 npm run dev
 ```
@@ -88,10 +105,12 @@ npm run dev
 | Method | Endpoint | Description |
 |--------|---------|-------------|
 | **GET** | `/api/applications` | Get all job applications |
+| **GET** | `/api/applications/:id` | Get a specific application |
 | **POST** | `/api/applications` | Create a new application |
 | **PUT** | `/api/applications/:id` | Update an application |
 | **DELETE** | `/api/applications/:id` | Delete an application |
 | **GET** | `/api/health` | Check API and MongoDB connection |
+| **POST** | `/api/upload` | Upload resume or cover letter files |
 
 ---
 
@@ -99,16 +118,33 @@ npm run dev
 ```
 apply-archive/
 ├── .env                  # Environment variables
+├── .env.example          # Example environment variables
 ├── package.json          # Project dependencies
 ├── server.js             # Express backend
 ├── start-app.js          # Start script (Frontend + Backend)
+├── uploads/              # Storage for uploaded files
 ├── src/                  # Frontend source
-│   ├── App.tsx           # Main component
+│   ├── App.tsx           # Main component with routing
 │   ├── components/       # UI components
+│   │   ├── ApplicationCard.tsx  # Job application card
+│   │   ├── FileUpload.tsx       # File upload component
+│   │   ├── SearchBar.tsx        # Search and filter
+│   │   ├── StatCard.tsx         # Statistics card
+│   │   ├── StatusBadge.tsx      # Application status badges
+│   │   └── ui/                  # UI components from shadcn
 │   ├── lib/              # Utilities
+│   │   ├── storage.ts    # Storage logic (localStorage & MongoDB)
+│   │   └── utils.ts      # Utility functions
 │   ├── pages/            # App pages
+│   │   ├── AddApplication.tsx   # Add new application
+│   │   ├── EditApplication.tsx  # Edit existing application
+│   │   ├── Index.tsx            # Main dashboard
+│   │   ├── NotFound.tsx         # 404 page
+│   │   └── ViewApplication.tsx  # View application details
 │   ├── types/            # TypeScript types
-│   └── vite.config.ts    # Vite config
+│   │   └── types.ts             # Type definitions
+│   ├── main.tsx          # Application entry point
+│   └── vite.config.ts    # Vite configuration
 └── README.md             # This file!
 ```
 
@@ -135,6 +171,26 @@ Want to contribute? Follow these steps:
 
 ---
 
+## **⚠️ Troubleshooting**
+
+### MongoDB Connection Issues
+- Ensure MongoDB is running (run `mongod` in terminal)
+- Check your connection string in `.env`
+- Verify network connectivity to MongoDB Atlas (if using cloud)
+- The app will automatically fall back to localStorage if MongoDB is unavailable
+
+### File Upload Problems
+- Check that the `uploads` directory exists and has write permissions
+- Maximum file size is limited to 50MB
+- Supported file types: PDF, DOC, DOCX, TXT
+
+### Cross-Platform Notes
+- **Windows**: Use `npm run dev-win` for Windows-specific environment
+- **macOS/Linux**: Standard commands work without modification
+- If you encounter EACCES errors on Linux/Mac, use `sudo chmod -R 755 uploads/`
+
+---
+
 ## **📝 License**
 This project is licensed under the **MIT License** – free to use, modify, and share!  
 Check the [LICENSE](./LICENSE) file for details.
@@ -143,6 +199,5 @@ Check the [LICENSE](./LICENSE) file for details.
 
 ## **⭐ Support & Share**
 - **If you like this project, give it a ⭐ on GitHub!**  
-- **Share with job seekers & friends** to help them manage their applications!**  
+- **Share with job seekers & friends** to help them manage their applications!  
 - **Follow for updates! 🚀**  
-
