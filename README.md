@@ -3,8 +3,8 @@
 A **free & open-source job application tracker** to organize your job search efficiently!  
 Track applications, store resumes, search/filter jobs, and **never lose track of your applications again!**
 
-🚀 **Live Demo**: [Apply Archive](https://apply-archive-demo.netlify.app)  
-⭐ **Star the Repo**: [GitHub Repository](https://github.com/yourusername/apply-archive)
+🚀 **Live Demo**: [Apply Archive](https://grand-mousse-e7c7c9.netlify.app)  
+⭐ **Star the Repo**: [GitHub Repository]([https://github.com/yourusername/apply-archive](https://github.com/manishtulabandu/Apply-Archiever))
 
 ---
 
