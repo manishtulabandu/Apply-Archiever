@@ -1,8 +1,16 @@
-
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { FileText, Upload, X, FilePlus, FileIcon, Download } from 'lucide-react';
+import React, { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  FileText,
+  Upload,
+  X,
+  FilePlus,
+  FileIcon,
+  Download,
+  FileCheck,
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface FileUploadProps {
   onChange: (file: File | null) => void;
@@ -17,7 +25,7 @@ const FileUpload = ({
   onChange,
   value,
   label,
-  accept = '.pdf,.doc,.docx',
+  accept = ".pdf,.doc,.docx",
   className,
   maxSize = 5, // Default max file size: 5MB
 }: FileUploadProps) => {
@@ -46,15 +54,18 @@ const FileUpload = ({
     }
 
     // Check file type
-    const acceptArray = accept.split(',');
-    const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
-    
-    if (!acceptArray.some(type => type === fileExtension || type === file.type)) {
+    const acceptArray = accept.split(",");
+    const fileExtension = `.${file.name.split(".").pop()?.toLowerCase()}`;
+
+    if (
+      !acceptArray.some((type) => type === fileExtension || type === file.type)
+    ) {
       setError(`Only ${accept} files are allowed`);
       return;
     }
 
     onChange(file);
+    toast.success(`${label} uploaded successfully`);
   };
 
   // Handle drag events
@@ -70,7 +81,7 @@ const FileUpload = ({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files?.[0] || null;
     validateAndSetFile(file);
   };
@@ -81,39 +92,40 @@ const FileUpload = ({
     e.preventDefault();
     onChange(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
+    toast.info(`${label} removed`);
   };
 
   // Get file name from data URL or path
   const getFileName = () => {
     if (!value) return null;
-    
+
     // For data URLs, try to extract the filename from the file info
-    if (value.startsWith('data:')) {
+    if (value.startsWith("data:")) {
       const fileNameMatch = value.match(/name=(.*?)(;|$)/);
       if (fileNameMatch && fileNameMatch[1]) {
         return decodeURIComponent(fileNameMatch[1]);
       }
-      return 'Uploaded file';
+      return "Uploaded file";
     }
-    
+
     // For regular paths, extract the filename
-    const pathParts = value.split('/');
+    const pathParts = value.split("/");
     return pathParts[pathParts.length - 1];
   };
-  
+
   // Handle download for data URLs
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (!value) return;
-    
-    const fileName = getFileName() || 'download';
-    
+
+    const fileName = getFileName() || "download";
+
     // Create a temporary anchor and trigger download
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = value;
     link.download = fileName;
     document.body.appendChild(link);
@@ -122,12 +134,15 @@ const FileUpload = ({
   };
 
   return (
-    <div className={cn('w-full', className)}>
+    <div className={cn("w-full", className)}>
       <div
         className={cn(
-          'relative border-2 border-dashed rounded-lg p-6 transition-colors',
-          isDragging ? 'border-primary/70 bg-primary/5' : 'border-muted-foreground/20 hover:border-muted-foreground/40',
-          error && 'border-destructive/40 bg-destructive/5'
+          "relative border-2 border-dashed rounded-lg p-6 transition-colors",
+          isDragging
+            ? "border-primary/70 bg-primary/5"
+            : "border-muted-foreground/20 hover:border-muted-foreground/40",
+          value ? "bg-primary/5 border-primary/30" : "",
+          error && "border-destructive/40 bg-destructive/5"
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -160,29 +175,34 @@ const FileUpload = ({
           // File selected state
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="rounded-full bg-primary/10 p-2">
-                <FileIcon className="h-5 w-5 text-primary" />
+              <div className="rounded-full bg-primary/20 p-2">
+                <FileCheck className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">{getFileName()}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {getFileName()}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {label} uploaded
+                  <span className="text-primary font-medium">
+                    File uploaded
+                  </span>{" "}
+                  - {label}
                 </p>
               </div>
             </div>
             <div className="flex space-x-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleDownload} 
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDownload}
                 className="rounded-full h-8 w-8"
               >
                 <Download className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleRemoveFile} 
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRemoveFile}
                 className="rounded-full h-8 w-8 text-destructive"
               >
                 <X className="h-4 w-4" />
@@ -191,10 +211,8 @@ const FileUpload = ({
           </div>
         )}
       </div>
-      
-      {error && (
-        <p className="mt-2 text-xs text-destructive">{error}</p>
-      )}
+
+      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
     </div>
   );
 };
